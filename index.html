@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>慧眼看中国アプリ紹介</title>
+    
+     <!-- PWA対応: manifest.json のリンク -->
+    <link rel="manifest" href="manifest.json">
+
+    <!-- PWA対応: テーマカラー -->
+    <meta name="theme-color" content="#333333">
+
+    <!-- PWA対応: iOS向け設定 -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="慧眼看中国アプリ紹介">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>アプリ使用マニュアル(6種)</h1>
+    </header>
+
+    <main id="app-list-container">
+        <!-- アプリ紹介セクションはここにJavaScriptで動的に生成されます -->
+    </main>
+
+    <footer>
+        <p>このアプリは慧眼看中国アプリ作成者が運営しています。</p>
+    </footer>
+    <!-- ★追加: 更新通知用のUI -->
+    <div id="update-notification" class="update-notification">
+        新しいバージョンが利用可能です。
+        <button id="update-button">更新</button>
+    </div>
+    <!-- ★追加: インストールボタン（初期状態は非表示） -->
+    <button id="install-button" style="display: none; position: fixed; bottom: 80px; right: 20px; z-index: 1000; padding: 12px 24px; background-color: #007bff; color: white; border: none; border-radius: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer; font-weight: bold;">
+        アプリをインストール
+    </button>
+    <!-- サービスワーカーの登録スクリプト (最終提案版) -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            const showUpdateNotification = (registration) => {
+                const notification = document.getElementById('update-notification');
+                const updateButton = document.getElementById('update-button');
+
+                const newUpdateButton = updateButton.cloneNode(true);
+                updateButton.parentNode.replaceChild(newUpdateButton, updateButton);
+
+                newUpdateButton.addEventListener('click', () => {
+                    const waitingWorker = registration.waiting;
+                    if (waitingWorker) {
+                        // 更新の意思表示としてメッセージを送信
+                        waitingWorker.postMessage({ action: 'skipWaiting' });
+                    }
+                });
+                notification.style.display = 'block';
+            };
+
+            const registerSW = async () => {
+                try {
+                    const registration = await navigator.serviceWorker.register('./service-worker.js', { updateViaCache: 'none' });
+                    
+                    // ページ読み込み時点ですでに待機中のSWがいる場合
+                    if (registration.waiting) {
+                        showUpdateNotification(registration);
+                        return;
+                    }
+
+                    // 稼働中に新しいSWがインストールされた場合
+                    registration.addEventListener('updatefound', () => {
+                        const newWorker = registration.installing;
+                        newWorker.addEventListener('statechange', () => {
+                            // 待機状態になったら更新UIを表示
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                showUpdateNotification(registration);
+                            }
+                        });
+                    });
+
+                } catch (error) {
+                    console.error('Service Worker registration failed:', error);
+                }
+            };
+            
+            // ★★★ ここからが重要な変更点 ★★★
+            // サービスワーカーが切り替わったことを検知してリロードする
+            let refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (refreshing) return;
+                console.log('Controller changed. Forcing reload.');
+                // ★★★ window.location.reload(true) は非推奨になったため、
+                // ★★★ サービスワーカー側でのナビゲーションリクエスト制御が本命です。
+                // ★★★ そのため、この行は変更しませんが、重要性を再認識します。
+                window.location.reload(); 
+                refreshing = true;
+            });
+
+            // ページが読み込まれた後にSWを登録
+            window.addEventListener('load', registerSW);
+
+            // ★★★ 追加: インストールプロンプトの制御 ★★★
+            let deferredPrompt;
+            const installButton = document.getElementById('install-button');
+
+            // ブラウザが「インストール可能」と判定した時に発生するイベント
+            window.addEventListener('beforeinstallprompt', (e) => {
+                // ブラウザ標準のインストールプロンプト（アドレスバーの表示など）を一旦キャンセル
+                e.preventDefault();
+                // イベントを保持しておく（後でボタンを押した時に使うため）
+                deferredPrompt = e;
+                // インストールボタンを表示
+                installButton.style.display = 'block';
+            });
+
+            installButton.addEventListener('click', async () => {
+                if (!deferredPrompt) return;
+                // 保持しておいたプロンプトを表示
+                deferredPrompt.prompt();
+                // ユーザーの応答（インストールする/しない）を待機
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`User response to the install prompt: ${outcome}`);
+                // プロンプトは一度しか使えないため破棄
+                deferredPrompt = null;
+                // ボタンを非表示にする
+                installButton.style.display = 'none';
+            });
+
+            window.addEventListener('appinstalled', () => {
+                installButton.style.display = 'none';
+                deferredPrompt = null;
+                console.log('PWA was installed');
+            });
+        }
+    </script>
+    <script src="script.js"></script>
+</body>
+</html>
