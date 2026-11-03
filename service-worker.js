@@ -1,5 +1,5 @@
 // キャッシュするファイルの名前とバージョンを定義
-const CACHE_NAME = 'huiyankanzhongguo-app-showcase-v4';
+const CACHE_NAME = 'huiyankanzhongguo-app-showcase-v8';
 // キャッシュするファイルのリスト
 const urlsToCache = [
   './', // index.html を示す

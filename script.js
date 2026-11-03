@@ -77,26 +77,24 @@ document.addEventListener("DOMContentLoaded", () => {
     },
     
     {
-      id: "ziyouShuShuo", // 例: アプリ4のID
-      name: "App④自由说中文",
+      id: "sentence-builder", // 例: アプリ3のID
+      name: "App④トレーニングクイズ（4択問題）",
       description:
-        "気になる中国語の文章を正しく発音できるかチェックするアプリです。中国語文章を入力して、何回も発音を聞きましょう。その後、中国語の発音練習に進みます。自分の勉強の記録をクリップボードにコピーする機能もあります。",
+        "各々の課で学習したことを4択問題のクイズ形式で表示するアプリです。",
       images: [
         {
-          src: "images/自由说说初期画面.jpg",
-          caption: "アプリの初期画面です。",
+          src: "images/四択初期画面.png",
+          caption: "クイズ一覧画面が表示されます。学習したいレッスンを選んでタップしましょう。",
         },
         {
-          src: "images/自由说说音声入力1.jpg",
-          caption:
-            "聞くボタンで、音声を聞きます。音声入力ボタンをクリックすると、入力モードになり、音声入力ができます。ボタンの背景色は赤に変わり、レコード中と表示されます。",
+          src: "images/四択問題表示.png",
+          caption: "問題が表示されて、それに対する解答が表示されます。正しいものを選択してタップする。画面の上部にはAIが作成した画像、スライド、音声解説にアクセスするためのボタンがあります。クリックしてみましょう。",
         },
-        {
-          src: "images/自由说说音声入力２.jpg",
-          caption: "音声入力が終われば、判定結果が表示されます。",
-        },
+        
+        
       ],
-      appUrl: "https://hidekitakazawa.github.io/htCyonwenVoiceIn/",
+      appUrl:
+        "https://hidekitakazawa.github.io/huiyankanZhongguo4Taku/", // あなたのアプリ3への実際のURLに置き換えてください
     },
      {
         id: "cyuugokugobunnpou4taku", // 例: アプリ4のID
