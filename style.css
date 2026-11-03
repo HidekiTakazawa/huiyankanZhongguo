@@ -168,6 +168,110 @@ footer {
   cursor: pointer;
 }
 
+/* ★追加: iOS用インストール案内バナーのスタイル */
+.ios-install-banner {
+  display: none;
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 32px);
+  max-width: 420px;
+  background-color: #ffffff;
+  color: #121213;
+  padding: 16px;
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  z-index: 1001;
+  box-sizing: border-box;
+  border: 1px solid #e0e0e0;
+  animation: iosBannerSlideUp 0.3s ease-out;
+}
+
+@keyframes iosBannerSlideUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 20px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.ios-install-banner::after {
+  content: "";
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 10px 10px 0;
+  border-style: solid;
+  border-color: #ffffff transparent transparent;
+}
+
+.ios-install-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.ios-install-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ios-install-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.ios-install-title {
+  font-weight: bold;
+  font-size: 1rem;
+  margin: 0;
+  color: #333;
+}
+
+.ios-install-close {
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: #888;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.ios-install-steps {
+  font-size: 0.9rem;
+  margin: 0;
+  padding-left: 1.2rem;
+  color: #333;
+  line-height: 1.6;
+}
+
+.ios-install-steps li {
+  margin-bottom: 4px;
+}
+
+.ios-share-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  background: #f0f4f8;
+  border-radius: 4px;
+  padding: 2px 5px;
+  margin: 0 2px;
+  color: #007bff;
+  font-weight: bold;
+}
+
 /* スマホなどタッチ操作が主で、画面幅が小さい場合 */
 @media (max-width: 768px) {
     header h1 {

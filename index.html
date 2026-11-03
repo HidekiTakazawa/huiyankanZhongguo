@@ -39,6 +39,30 @@
     <button id="install-button" style="display: none; position: fixed; bottom: 80px; right: 20px; z-index: 1000; padding: 12px 24px; background-color: #007bff; color: white; border: none; border-radius: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer; font-weight: bold;">
         アプリをインストール
     </button>
+    <!-- ★追加: iPhone / iPad (iOS) 向け自動インストール案内バナー -->
+    <div id="ios-install-banner" class="ios-install-banner" role="dialog" aria-labelledby="ios-install-title">
+        <div class="ios-install-header">
+            <div class="ios-install-title-group">
+                <img src="icons/icon-192x192.png" alt="アプリアイコン" class="ios-install-icon">
+                <p id="ios-install-title" class="ios-install-title">アプリをインストール</p>
+            </div>
+            <button id="ios-install-close" class="ios-install-close" aria-label="閉じる">&times;</button>
+        </div>
+        <ol class="ios-install-steps">
+            <li>
+                画面下の共有ボタン
+                <span class="ios-share-icon" aria-hidden="true">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+                        <polyline points="16 6 12 2 8 6"></polyline>
+                        <line x1="12" y1="2" x2="12" y2="15"></line>
+                    </svg>
+                </span>
+                をタップ
+            </li>
+            <li>メニューから<strong>「ホーム画面に追加」</strong>を選択</li>
+        </ol>
+    </div>
     <!-- サービスワーカーの登録スクリプト (最終提案版) -->
     <script>
         if ('serviceWorker' in navigator) {
@@ -104,8 +128,35 @@
             // ★★★ 追加: インストールプロンプトの制御 ★★★
             let deferredPrompt;
             const installButton = document.getElementById('install-button');
+            const iosInstallBanner = document.getElementById('ios-install-banner');
+            const iosInstallClose = document.getElementById('ios-install-close');
 
-            // ブラウザが「インストール可能」と判定した時に発生するイベント
+            // iOS端末（iPhone / iPad / iPod）かどうかの判定
+            const isIos = () => {
+                const userAgent = window.navigator.userAgent.toLowerCase();
+                return /iphone|ipad|ipod/.test(userAgent) ||
+                    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            };
+
+            // すでにPWAとしてインストール済み（スタンドアロン起動）かどうかの判定
+            const isInStandaloneMode = () => {
+                return ('standalone' in window.navigator && window.navigator.standalone) ||
+                    window.matchMedia('(display-mode: standalone)').matches;
+            };
+
+            // iPhone / iPad で未インストールの場合は自動でインストール案内バナーを表示
+            if (isIos() && !isInStandaloneMode()) {
+                window.addEventListener('load', () => {
+                    iosInstallBanner.style.display = 'block';
+                    installButton.style.display = 'block';
+                });
+
+                iosInstallClose.addEventListener('click', () => {
+                    iosInstallBanner.style.display = 'none';
+                });
+            }
+
+            // ブラウザが「インストール可能」と判定した時に発生するイベント（Windows / Android向け）
             window.addEventListener('beforeinstallprompt', (e) => {
                 // ブラウザ標準のインストールプロンプト（アドレスバーの表示など）を一旦キャンセル
                 e.preventDefault();
@@ -116,6 +167,11 @@
             });
 
             installButton.addEventListener('click', async () => {
+                // iOSの場合は案内バナーを再表示
+                if (isIos() && !isInStandaloneMode()) {
+                    iosInstallBanner.style.display = 'block';
+                    return;
+                }
                 if (!deferredPrompt) return;
                 // 保持しておいたプロンプトを表示
                 deferredPrompt.prompt();
