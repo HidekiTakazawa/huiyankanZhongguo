@@ -1,5 +1,5 @@
 // キャッシュするファイルの名前とバージョンを定義
-const CACHE_NAME = 'huiyankanzhongguo-app-showcase-v9';
+const CACHE_NAME = 'huiyankanzhongguo-app-showcase-v10';
 // キャッシュするファイルのリスト
 const urlsToCache = [
   './', // index.html を示す
@@ -19,15 +19,23 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        console.log('Opened cache');
-        return cache.addAll(urlsToCache);
+        console.log('Opened cache:', CACHE_NAME);
+        // ★重要: ブラウザのHTTPキャッシュ（古いファイル）を無視してサーバーから最新を取得してキャッシュする
+        return Promise.all(
+          urlsToCache.map((url) =>
+            fetch(new Request(url, { cache: 'reload' })).then((response) => {
+              if (!response.ok) {
+                throw new Error(`Failed to fetch ${url}: ${response.status}`);
+              }
+              return cache.put(url, response);
+            })
+          )
+        );
       })
   );
-  // ★追加: 新しいサービスワーカーが待機状態に入ったらすぐに有効化を試みる
-  // self.skipWaiting(); 
 });
+
 // ★★★ 追加: メッセージを受け取ったら skipWaiting を実行するリスナー ★★★
-// messageイベントリスナーを拡張
 self.addEventListener('message', (event) => {
   if (event.data && event.data.action === 'skipWaiting') {
     self.skipWaiting();
@@ -36,43 +44,50 @@ self.addEventListener('message', (event) => {
 
 // 2. フェッチイベント（リクエストがあった場合）の処理
 self.addEventListener('fetch', (event) => {
-  // ★★★ ここからが重要な変更点 ★★★
-
   // chrome-extension:// スキームのリクエストはキャッシュ対象外にする
   if (event.request.url.startsWith('chrome-extension://')) {
     return; // 何もせず、ブラウザのデフォルトのフェッチ動作に任せる
   }
 
-
   // ナビゲーションリクエスト（ページの読み込み）の場合
   if (event.request.mode === 'navigate') {
-    // 常にネットワークからの取得を優先する（ネットワークファースト戦略）
+    // 常にネットワークからの最新取得を優先する（HTTPキャッシュも再検証）
     event.respondWith(
-      fetch(event.request).catch(() => {
-        // オフラインの場合はキャッシュから index.html を返す
-        return caches.match('./index.html');
-      })
+      fetch(event.request, { cache: 'no-cache' })
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put('./index.html', responseToCache);
+            });
+          }
+          return networkResponse;
+        })
+        .catch(() => {
+          // オフラインの場合はキャッシュから index.html を返す
+          return caches.match('./index.html');
+        })
     );
     return;
   }
 
   // ナビゲーションリクエスト以外（CSS, JS, 画像など）の場合
-  // キャッシュファースト戦略
+  // 現在のバージョンのキャッシュ（CACHE_NAME）から優先して返す
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      // キャッシュにあればそれを返す
-      if (response) {
-        return response;
-      }
-      // キャッシュになければネットワークから取得し、キャッシュに追加
-      return fetch(event.request).then((networkResponse) => {
-        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
-          const responseToCache = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.match(event.request).then((response) => {
+        // キャッシュにあればそれを返す
+        if (response) {
+          return response;
         }
-        return networkResponse;
+        // キャッシュになければネットワークから取得し、キャッシュに追加
+        return fetch(event.request).then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+            const responseToCache = networkResponse.clone();
+            cache.put(event.request, responseToCache);
+          }
+          return networkResponse;
+        });
       });
     })
   );
@@ -92,8 +107,6 @@ self.addEventListener('activate', (event) => {
       );
     }).then(() => {
       console.log('Service Worker: Claiming clients.');
-      // ★★★ clients.claim() は、開かれている全てのクライアントに即座に通知を送るわけではない。
-      // ★★★ そのため、この後、ページ側と連携してリロードするのが確実。
       return self.clients.claim();
     })
   );
